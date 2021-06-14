@@ -75,6 +75,9 @@ int process_update( const char *filename, const char *md5,
     process_time = get_unix_time();
     rv = 0;
 
+    debug_info("Aker delay 30sec is started\n");
+    sleep(30);
+
     md5_string = compute_byte_stream_md5(payload, payload_size, result);
     if( (NULL != md5_string) && (0 < payload_size) ) {
         if( 0 == process_schedule_data(payload_size, payload) ) {
