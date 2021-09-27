@@ -237,8 +237,8 @@ void *scheduler_thread(void *args)
                     aker_metric_set_tz(current_schedule->time_zone);
                     set_unix_time_zone(current_schedule->time_zone);
 
-                    debug_print("The timezone is %s and %s\n", tzname[0], tzname[1]);
-                    debug_print("The offset is %+ld seconds\n", timezone);
+                    debug_info("The timezone is %s and %s\n", tzname[0], tzname[1]);
+                    debug_info("The offset is %+ld seconds\n", timezone);
 
                     //"timezone" parameter is not defined in aker code and will be set from tzset()
                     aker_metric_set_tz_offset(timezone);
@@ -266,6 +266,9 @@ void *scheduler_thread(void *args)
                 last_report_time += report_jitter;
             }
         }
+
+	debug_info("next_report_time is %ld\n", (long)next_report_time);
+	debug_info("current_unix_time is %ld\n", (long)current_unix_time);
 
         /* Report if it is time. */
         if( next_report_time <= current_unix_time ) {

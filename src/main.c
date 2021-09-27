@@ -86,7 +86,7 @@ int main( int argc, char **argv)
         { "data-file",    required_argument, 0, 'd' },
         { "md5-file",     required_argument, 0, 'f' },
         { "max-macs",     required_argument, 0, 'm' },
-        { "device-id",    required_argument, 0, 'i' },
+        { "device-id",    optional_argument, 0, 'i' },
         { 0, 0, 0, 0 }
     };
 
@@ -100,7 +100,7 @@ int main( int argc, char **argv)
     char *firewall_cmd = NULL;
     char *data_file = NULL;
     char *md5_file = NULL;
-    const char *device_id = NULL;
+    const char *device_id = "mac:44aaf59b1f18";
     int item = 0;
     int opt_index = 0;
     int rv = 0;
@@ -159,7 +159,7 @@ int main( int argc, char **argv)
             case 'i':
                 /* This is basically a constant for the program.  No need to
                  * duplicate, just point to the original arguement. */
-                device_id = optarg;
+               //device_id = optarg;
                 break;
             case 'h':
                 aker_help(argv[0], optarg);

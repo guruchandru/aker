@@ -34,7 +34,8 @@
 #define TIME_ZONE         "time_zone" /* REF: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones */
 
 #ifndef MINIMUM_REPORTING_RATE
-#define MINIMUM_REPORTING_RATE 3600
+//#define MINIMUM_REPORTING_RATE 3600
+#define MINIMUM_REPORTING_RATE 100
 #endif
 
 
@@ -62,7 +63,7 @@ int decode_schedule(size_t len, uint8_t * buf, schedule_t **t)
         return -1;
     }
     
-    debug_print("decode_schedule - calling create_schedule\n");
+    debug_info("decode_schedule - calling create_schedule\n");
     s = create_schedule();
     *t = s; 
     
@@ -70,7 +71,7 @@ int decode_schedule(size_t len, uint8_t * buf, schedule_t **t)
         return -2;
     }
     
-    debug_print("decode_schedule - msgpack_unpacked_init\n");
+    debug_info("decode_schedule - msgpack_unpacked_init\n");
     msgpack_unpacked_init(&result);
     ret = msgpack_unpack_next(&result, (char *) buf, len, &off);
     
@@ -81,7 +82,7 @@ int decode_schedule(size_t len, uint8_t * buf, schedule_t **t)
     }
     
     while (ret == MSGPACK_UNPACK_SUCCESS) {
-        debug_print("decode_schedule - MSGPACK_UNPACK_SUCCESS\n");
+        debug_info("decode_schedule - MSGPACK_UNPACK_SUCCESS\n");
         msgpack_object obj = result.data;
         if (obj.type == MSGPACK_OBJECT_MAP) {
             debug_print("decode_schedule - MSGPACK_OBJECT_MAP\n");
@@ -97,11 +98,11 @@ int decode_schedule(size_t len, uint8_t * buf, schedule_t **t)
                     decode_schedule_table(key, val, &s->weekly);
                 }
                 else if (0 == strncmp(key->via.str.ptr, ABSOLUTE_SCHEDULE, key->via.str.size)) {
-                    debug_print("Found %s\n", ABSOLUTE_SCHEDULE);
+                    debug_info("Found %s\n", ABSOLUTE_SCHEDULE);
                     decode_schedule_table(key, val, &s->absolute);
                 }
                 else if (0 == strncmp(key->via.str.ptr, MACS, key->via.str.size)) {
-                    debug_print("Found %s\n", MACS);
+                    debug_info("Found %s\n", MACS);
                     if (0 != decode_macs_table(key, val, &s)) {
                         debug_error("decode_schedule():decode_macs_table() failed\n");
                         if (s->macs) {
@@ -121,6 +122,7 @@ int decode_schedule(size_t len, uint8_t * buf, schedule_t **t)
                     {
                         s->report_rate_s = MINIMUM_REPORTING_RATE;
                     }
+			debug_info("The report_rate is %d\n", s->report_rate_s);
                 }
                 else {
                      debug_error("decode_schedule() can't handle object %d\n", obj.type);
