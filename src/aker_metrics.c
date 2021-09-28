@@ -179,6 +179,7 @@ static void build_and_send_wrp( time_t time )
 
     /* Build the source since it should be mac:000000000000/aker */
     snprintf( source, 256, "%s/aker", g_device_id );
+    debug_info("source is %s\n", source);
 
     /* Populate the rest of the wrp for the event. */
     msg.msg_type = WRP_MSG_TYPE__EVENT;
@@ -188,6 +189,7 @@ static void build_and_send_wrp( time_t time )
     msg.u.event.payload = sbuf.data;
     msg.u.event.payload_size = sbuf.size;
 
+    debug_info("The buf data is %s and size is %zu\n", sbuf.data, sbuf.size);
     /* Send it if we can. */
     if( g_libpd ) {
         libparodus_send(g_libpd, &msg);
