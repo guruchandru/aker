@@ -50,6 +50,7 @@ static schedule_t *current_schedule = NULL;
 static char *current_blocked_macs = NULL;
 static pthread_mutex_t schedule_lock;
 static pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
+static int report_metrics_to_log = 0;
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -233,7 +234,7 @@ void *scheduler_thread(void *args)
            if( NULL != current_blocked_macs ) { //To set schedule_enabled parameter
                 aker_metric_inc_schedule_set_count();
                 aker_metric_set_schedule_enabled(1);
-                if(current_schedule->time_zone != NULL) {
+                if(current_schedule && current_schedule->time_zone != NULL) {
                     aker_metric_set_tz(current_schedule->time_zone);
                     set_unix_time_zone(current_schedule->time_zone);
 
@@ -255,7 +256,9 @@ void *scheduler_thread(void *args)
             call_firewall( firewall_cmd, current_blocked_macs );
 
             /* Only if the reporting rate changes, calculate a new report rate jitter */
-            if( last_report_rate != current_schedule->report_rate_s ) {
+            if( current_schedule && 
+                last_report_rate != current_schedule->report_rate_s )
+            {
                 last_report_rate = current_schedule->report_rate_s;
 
                 /* Remove the previously calculated jitter so we don't compound
@@ -276,8 +279,11 @@ void *scheduler_thread(void *args)
             last_report_time = current_unix_time;
         }
 
-        /* Always report this to the log. */
-        aker_metrics_report_to_log();
+        /* Report this to the log when something has happened. */
+        if( 0 < report_metrics_to_log ) {
+            aker_metrics_report_to_log();
+            report_metrics_to_log = 0;
+        }
 
         /* Never report if disabled */
         next_report_time = INT_MAX;
@@ -338,6 +344,7 @@ static void call_firewall( const char* firewall_cmd, char *blocked )
             aker_metric_inc_window_trans_count();
             aker_free( buf );
             debug_info( "command result: %d\n", rv );
+            report_metrics_to_log = 1;
         } else {
             debug_error( "Failed to allocate buffer needed to call firewall cmd.\n" );
         }
