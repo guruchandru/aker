@@ -16,8 +16,11 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (AKER_COMMON_LIBS -lcunit -lcimplog -lwrp-c -lpthread -lmsgpackc
-     -lnanomsg -ltrower-base64)
+     -lnanomsg -ltrower-base64 -lrbus)
 set (AKER_LINUX_LIBS gcov -Wl,--no-as-needed)
+
+# Always compile aker_rbus.c
+set(AKER_RBUS_SRC ../src/aker_rbus.c)
 
 if(NOT DISABLE_VALGRIND)
 set (MEMORY_CHECK valgrind --leak-check=full --show-reachable=yes -v)
@@ -29,10 +32,13 @@ link_directories ( ${LIBRARY_DIR} )
 #   test_schedule
 #-------------------------------------------------------------------------------
 add_test(NAME test_schedule COMMAND ${MEMORY_CHECK} ./test_schedule)
+
 add_executable(test_schedule test_schedule.c ../src/schedule_print.c 
                ../src/schedule.c ../src/decode.c ../src/process_data.c
                ../src/aker_md5.c ../src/md5.c ../src/aker_msgpack.c
-               ../src/scheduler.c mem_wrapper.c common_test_stubs.c
+               ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               mem_wrapper.c common_test_stubs.c
                ../src/aker_metrics.c libparodus_mock.c)
 target_link_libraries (test_schedule ${AKER_COMMON_LIBS})
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -79,7 +85,9 @@ add_test(NAME test_process_data COMMAND ${MEMORY_CHECK} ./test_process_data)
 add_executable(test_process_data test_process_data.c ../src/process_data.c
                ../src/aker_md5.c ../src/md5.c ../src/schedule_print.c
                ../src/schedule.c ../src/decode.c ../src/time.c 
-               ../src/scheduler.c ../src/aker_msgpack.c mem_wrapper.c
+               ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               ../src/aker_msgpack.c mem_wrapper.c
                ../src/aker_metrics.c libparodus_mock.c)
 
 target_link_libraries (test_process_data ${AKER_COMMON_LIBS})
@@ -106,7 +114,9 @@ add_test(NAME test_process_is_create_ok COMMAND ${MEMORY_CHECK} ./test_process_i
 add_executable(test_process_is_create_ok test_process_is_create_ok.c ../src/process_data.c
                ../src/aker_md5.c ../src/md5.c ../src/schedule_print.c
                ../src/schedule.c ../src/decode.c ../src/time.c 
-               ../src/scheduler.c ../src/aker_msgpack.c mem_wrapper.c
+               ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               ../src/aker_msgpack.c mem_wrapper.c
                ../src/aker_metrics.c libparodus_mock.c)
 
 target_link_libraries (test_process_is_create_ok ${AKER_COMMON_LIBS})
@@ -130,7 +140,9 @@ endif()
 #-------------------------------------------------------------------------------
 add_test(NAME test_md5 COMMAND ${MEMORY_CHECK} ./test_md5)
 add_executable(test_md5 test_md5.c ../src/process_data.c ../src/aker_md5.c 
-               ../src/md5.c ../src/scheduler.c ../src/time.c ../src/schedule.c
+               ../src/md5.c ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               ../src/time.c ../src/schedule.c
                ../src/decode.c ../src/schedule_print.c ../src/aker_msgpack.c 
                mem_wrapper.c ../src/aker_metrics.c libparodus_mock.c)
 target_link_libraries (test_md5 ${AKER_COMMON_LIBS})
@@ -159,7 +171,9 @@ endif()
 add_executable(test_scheduler test_scheduler.c ../src/schedule_print.c
                ../src/schedule.c ../src/decode.c ../src/process_data.c
                ../src/aker_md5.c ../src/md5.c ../src/aker_msgpack.c
-               ../src/scheduler.c mem_wrapper.c common_test_stubs.c
+               ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               mem_wrapper.c common_test_stubs.c
                libparodus_mock.c)
 target_link_libraries (test_scheduler ${AKER_COMMON_LIBS})
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -177,7 +191,9 @@ endif()
 add_executable(test_reporter test_reporter.c ../src/schedule_print.c
                ../src/schedule.c ../src/decode.c ../src/process_data.c
                ../src/aker_md5.c ../src/md5.c ../src/aker_msgpack.c
-               ../src/scheduler.c mem_wrapper.c
+               ../src/scheduler.c ../src/aker_notification.c
+               ${AKER_RBUS_SRC}
+               mem_wrapper.c
                ../src/time.c libparodus_mock.c)
 target_compile_definitions(test_reporter PUBLIC MINIMUM_REPORTING_RATE=1)
 target_link_libraries (test_reporter ${AKER_COMMON_LIBS})
