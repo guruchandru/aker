@@ -467,18 +467,27 @@ static mac_block_period_t* build_periods_for_mac(
     }
 
     current = events;
-    timeline_event_t *prev_event = NULL;
+    /* Tracks the timestamp of the last absolute event seen so ALL weekly events
+     * tied to that same timestamp are skipped, not just the one immediately
+     * following it (schedule wrap-around can duplicate a weekly event at the
+     * same tie point, breaking a prev_event-only check). */
+    time_t last_absolute_time = 0;
+    bool has_last_absolute_time = false;
     while (current) {
         bool mac_in_current_list = false;
 
         /* Skip weekly events if there was an absolute event at the same time (absolute takes precedence) */
-        if (!current->is_absolute && prev_event &&
-            prev_event->event_time == current->event_time && prev_event->is_absolute) {
-            debug_print("build_periods_for_mac: MAC %u - Skipping weekly event at %ld, absolute event already processed\n",
+        if (!current->is_absolute && has_last_absolute_time &&
+            last_absolute_time == current->event_time) {
+            debug_info("build_periods_for_mac: MAC %u - Skipping weekly event at %ld, absolute event already processed\n",
                        mac_index, current->event_time);
-            prev_event = current;
             current = current->next;
             continue;
+        }
+
+        if (current->is_absolute) {
+            last_absolute_time = current->event_time;
+            has_last_absolute_time = true;
         }
 
         /* Check if this MAC is in the current event's block list */
@@ -536,19 +545,19 @@ static mac_block_period_t* build_periods_for_mac(
                     /* Absolute time = Weekly time for this MAC → Backend added MAC to absolute because of weekly conflict
                      * Treat as weekly start for notification purposes */
                     start_is_absolute = false;
-                    debug_print("build_periods_for_mac: MAC %u - Block start at %ld: absolute time = weekly time, treating as WEEKLY start (backend-generated)\n",
+                    debug_info("build_periods_for_mac: MAC %u - Block start at %ld: absolute time = weekly time, treating as WEEKLY start (backend-generated)\n",
                                mac_index, current->event_time);
                 } else {
                     /* Absolute time ≠ Weekly time (or no weekly) → True user-initiated pause
                      * Treat as absolute start for notification purposes */
                     start_is_absolute = true;
-                    debug_print("build_periods_for_mac: MAC %u - Block start at %ld: absolute time before weekly (or no weekly), treating as ABSOLUTE start (user-initiated)\n",
+                    debug_info("build_periods_for_mac: MAC %u - Block start at %ld: absolute time before weekly (or no weekly), treating as ABSOLUTE start (user-initiated)\n",
                                mac_index, current->event_time);
                 }
             } else {
                 /* Pure weekly event - always treat as weekly start */
                 start_is_absolute = false;
-                debug_print("build_periods_for_mac: MAC %u - Block start at %ld: WEEKLY event\n",
+                debug_info("build_periods_for_mac: MAC %u - Block start at %ld: WEEKLY event\n",
                            mac_index, current->event_time);
             }
         } else if (!mac_in_current_list && currently_blocked) {
@@ -592,19 +601,19 @@ static mac_block_period_t* build_periods_for_mac(
                         /* Absolute time = Weekly time for this MAC unblock → Backend removed MAC from absolute because weekly ends
                          * Treat as weekly end for notification purposes */
                         end_is_absolute = false;
-                        debug_print("build_periods_for_mac: MAC %u - Block end at %ld: absolute time = weekly time, treating as WEEKLY end\n",
+                        debug_info("build_periods_for_mac: MAC %u - Block end at %ld: absolute time = weekly time, treating as WEEKLY end\n",
                                    mac_index, current->event_time);
                     } else {
                         /* Absolute time ≠ Weekly time → True user unpause or absolute expiry
                          * Treat as absolute end for notification purposes */
                         end_is_absolute = true;
-                        debug_print("build_periods_for_mac: MAC %u - Block end at %ld: absolute expiry, treating as ABSOLUTE end\n",
+                        debug_info("build_periods_for_mac: MAC %u - Block end at %ld: absolute expiry, treating as ABSOLUTE end\n",
                                    mac_index, current->event_time);
                     }
                 } else {
                     /* Pure weekly event - always treat as weekly end */
                     end_is_absolute = false;
-                    debug_print("build_periods_for_mac: MAC %u - Block end at %ld: WEEKLY event\n",
+                    debug_info("build_periods_for_mac: MAC %u - Block end at %ld: WEEKLY event\n",
                                mac_index, current->event_time);
                 }
 
@@ -622,7 +631,7 @@ static mac_block_period_t* build_periods_for_mac(
                     /* Log notification strategy based on start/end flags */
                     const char *start_type = start_is_absolute ? "ABSOLUTE" : "WEEKLY";
                     const char *end_type = end_is_absolute ? "ABSOLUTE" : "WEEKLY";
-                    debug_print("build_periods_for_mac: MAC %u - Created period [%ld → %ld], start=%s, end=%s\n",
+                    debug_info("build_periods_for_mac: MAC %u - Created period [%ld → %ld], start=%s, end=%s\n",
                                mac_index, block_start, current->event_time, start_type, end_type);
 
                     if (!start_is_absolute && !end_is_absolute) {
@@ -647,7 +656,6 @@ static mac_block_period_t* build_periods_for_mac(
             currently_blocked = false;
         }
 
-        prev_event = current;
         current = current->next;
     }
 
